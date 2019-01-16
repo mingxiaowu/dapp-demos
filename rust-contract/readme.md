@@ -85,11 +85,11 @@ solidity会为其合约中的public变量自动生成get方法，而在Rust中�
 
 ```
 impl HelloWorld {
-    fn init(&mut self, _params: ActionParams, _ext: &mut Ext) -> Result<GasLeft, evm::Error> {
+    fn init(&mut self, _params: &ActionParams, _ext: &mut Ext) -> Result<GasLeft, evm::Error> {
         Ok(GasLeft::Known(U256::from(100)))
     }
 
-    fn balance_get(&mut self, _params: ActionParams, ext: &mut Ext) -> Result<GasLeft, evm::Error> {
+    fn balance_get(&mut self, _params: &ActionParams, ext: &mut Ext) -> Result<GasLeft, evm::Error> {
         self.output.resize(32, 0);
         self.balance
             .get(ext)?
@@ -101,7 +101,7 @@ impl HelloWorld {
         })
     }
 
-    fn update(&mut self, params: ActionParams, ext: &mut Ext) -> Result<GasLeft, evm::Error> {
+    fn update(&mut self, params: &ActionParams, ext: &mut Ext) -> Result<GasLeft, evm::Error> {
         self.output.resize(32, 0);
 
         // 从params获取update的参数
@@ -132,6 +132,7 @@ update方法中的参数amount需要从params中解析，取的是参数据4..36
        let amount = U256::from(
             params
                 .data
+                .to_owned()
                 .expect("invalid data")
                 .get(4..36)
                 .expect("no enough data"),
@@ -171,7 +172,7 @@ impl Default for Factory {
 
         // here we register contracts with addresses defined in genesis.json.
         {
-            use native::myContract::HelloWorld;
+            use super::my_Contract::HelloWorld;
             factory.register(Address::from(0x500), Box::new(HelloWorld::default()));
         }
         ...
@@ -185,7 +186,7 @@ impl Default for Factory {
 ```
 ...
 pub mod factory;
-pub mod myContract;
+pub mod my_Contract;
 #[cfg(test)]
 mod tests;
 ...

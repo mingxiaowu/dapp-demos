@@ -1,8 +1,10 @@
-use super::*;
 use byteorder::BigEndian;
 use byteorder::ByteOrder;
+use contracts::native::factory::Contract;
 use evm::ReturnData;
-use native::storage::*;
+use evm::storage::*;
+use evm::action_params::ActionParams;
+use evm::{Ext, GasLeft};
 use cita_types::{H256, U256};
 #[derive(Clone)]
 
@@ -13,7 +15,7 @@ pub struct HelloWorld {
 }
 
 impl Contract for HelloWorld {
-    fn exec(&mut self, params: ActionParams, ext: &mut Ext) -> Result<GasLeft, evm::Error> {
+    fn exec(&mut self, params: &ActionParams, ext: &mut Ext) -> Result<GasLeft, evm::Error> {
         let signature = BigEndian::read_u32(params.clone().data.unwrap().get(0..4).unwrap());
 
         match signature {
@@ -43,11 +45,11 @@ impl Default for HelloWorld {
 }
 
 impl HelloWorld {
-    fn init(&mut self, _params: ActionParams, _ext: &mut Ext) -> Result<GasLeft, evm::Error> {
+    fn init(&mut self, _params: &ActionParams, _ext: &mut Ext) -> Result<GasLeft, evm::Error> {
         Ok(GasLeft::Known(U256::from(100)))
     }
 
-    fn balance_get(&mut self, _params: ActionParams, ext: &mut Ext) -> Result<GasLeft, evm::Error> {
+    fn balance_get(&mut self, _params: &ActionParams, ext: &mut Ext) -> Result<GasLeft, evm::Error> {
         self.output.resize(32, 0);
         self.balance
             .get(ext)?
@@ -60,13 +62,14 @@ impl HelloWorld {
         })
     }
 
-    fn update(&mut self, params: ActionParams, ext: &mut Ext) -> Result<GasLeft, evm::Error> {
+    fn update(&mut self, params: &ActionParams, ext: &mut Ext) -> Result<GasLeft, evm::Error> {
         self.output.resize(32, 0);
         
         // 从params获取update的参数
         let amount = U256::from(
             params
                 .data
+                .to_owned()
                 .expect("invalid data")
                 .get(4..36)
                 .expect("no enough data"),
